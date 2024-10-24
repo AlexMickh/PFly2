@@ -1,7 +1,7 @@
 version: '3'
 
 env:
-  VAR: Hello
+  CONFIG_PATH: ./config/local.yaml
 
 tasks:
   build:
