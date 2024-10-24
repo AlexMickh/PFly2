@@ -1,0 +1,16 @@
+version: '3'
+
+env:
+  VAR: Hello
+
+tasks:
+  build:
+    cmds:
+      - cd bin; go build ../cmd/main.go; cd ..
+  run:
+    deps: [build]
+    cmds:
+      - ./bin/main
+  test:
+    cmds:
+      - go test
