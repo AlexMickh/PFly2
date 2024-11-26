@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/AlexMickh/PFly2/internal/config"
+	"github.com/AlexMickh/PFly2/internal/http-server/handlers/user/get"
 	"github.com/AlexMickh/PFly2/internal/http-server/handlers/user/save"
 	"github.com/AlexMickh/PFly2/internal/http-server/middleware/logger"
 	"github.com/AlexMickh/PFly2/internal/storage/postgres"
@@ -48,6 +49,7 @@ func main() {
 	router.Use(middleware.URLFormat)
 
 	router.Post("/save", save.New(log, storage))
+	router.Get("/get", get.New(log, storage))
 
 	log.Info("server started", slog.String("address", cfg.Server.Address))
 

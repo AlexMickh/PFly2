@@ -5,10 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/AlexMickh/PFly2/internal/http-server/handlers/user/save"
 	"github.com/AlexMickh/PFly2/internal/models"
 	"github.com/AlexMickh/PFly2/internal/storage"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 type Storage struct {
@@ -41,37 +40,32 @@ func New(
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) SaveUser(user save.Request) (int64, error) {
+func (s *Storage) SaveUser(user models.User) (int64, error) {
 	const op = "storage.postgres.SaveUser"
 
-	stmt, err := s.db.Prepare("INSERT INTO users (name, email, password, image_url, description, interests) VALUES (?, ?, ?, ?, ?, ?)")
+	stmt, err := s.db.Prepare("INSERT INTO users (name, email, password, image_url, description, interests) VALUES ($1, $2, $3, $4, $5, $6)")
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 
-	res, err := stmt.Exec(user.Name, user.Email, user.Password, user.ImageUrl, user.Description, user.Interests)
+	_, err = stmt.Exec(user.Name, user.Email, user.Password, user.ImageUrl, user.Description, pq.Array(user.Interests))
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 
-	id, err := res.LastInsertId()
-	if err != nil {
-		return -1, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return id, nil
+	return 1, nil
 }
 
 func (s *Storage) GetUserByEmail(email string) (models.User, error) {
 	const op = "storage.postgres.GetUserByEmail"
 
-	stmt, err := s.db.Prepare("SELECT * FROM users WHERE email = ?")
+	stmt, err := s.db.Prepare("SELECT * FROM users WHERE email = $1")
 	if err != nil {
 		return models.User{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	var user models.User
-	err = stmt.QueryRow(email).Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.ImageUrl, &user.Description, &user.Interests)
+	err = stmt.QueryRow(email).Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.ImageUrl, &user.Description, pq.Array(&user.Interests))
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.User{}, storage.ErrUserNotFound
 	}

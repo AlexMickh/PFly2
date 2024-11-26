@@ -5,13 +5,15 @@ import (
 	"net/http"
 
 	resp "github.com/AlexMickh/PFly2/internal/lib/api/response"
+	"github.com/AlexMickh/PFly2/internal/models"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserSaver interface {
-	SaveUser(user Request) (int64, error)
+	SaveUser(user models.User) (int64, error)
 }
 
 type Request struct {
@@ -61,8 +63,27 @@ func New(log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
 			return
 		}
 
+		hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			log.Error("failed to hash password", slog.String("error", err.Error()))
+
+			render.JSON(w, r, resp.Error("failed to hash password"))
+
+			return
+		}
+
+		userData := models.User{
+			Id:          -1,
+			Name:        req.Name,
+			Email:       req.Email,
+			Password:    hash,
+			ImageUrl:    req.ImageUrl,
+			Description: req.Description,
+			Interests:   req.Interests,
+		}
+
 		// TODO: add validation for case when user already exists
-		id, err := userSaver.SaveUser(req)
+		id, err := userSaver.SaveUser(userData)
 		if err != nil {
 			log.Error("failed to save user", slog.String("error", err.Error()))
 
